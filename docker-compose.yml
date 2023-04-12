@@ -1,0 +1,56 @@
+version: "2"
+
+# x-aws-vpc: "vpc-08964523d0343d270"
+# # x-aws-cluster: "JudgeZeoCluster"
+# x-aws-loadbalancer: "myloadbalancer"
+services:
+  server:
+    image: judge0/judge0:latest
+    env_file: judge0.conf
+    ports:
+      - "2358:2358"
+    privileged: true
+    restart: always
+
+  worker:
+    image: judge0/judge0:latest
+    command: ["./scripts/workers"]
+    env_file: judge0.conf
+    privileged: true
+    restart: always
+
+  db:
+    image: postgres:13.0
+    env_file: judge0.conf
+    volumes:
+      - postgres-data:/var/lib/postgresql/data/
+    restart: always
+
+  redis:
+    image: redis:6.0
+    command: [
+      "bash", "-c",
+      'docker-entrypoint.sh --appendonly yes --requirepass "$$REDIS_PASSWORD"'
+    ]
+    env_file: judge0.conf
+    volumes:
+      - redis-data:/data
+    restart: always
+
+volumes:
+  postgres-data:
+    driver_opts:
+      # Filesystem configuration
+      backup_policy: ENABLED
+      lifecycle_policy: AFTER_14_DAYS
+      performance_mode: maxIO
+      throughput_mode: provisioned
+      provisioned_throughput: 1
+  redis-data:
+    driver_opts:
+      # Filesystem configuration
+      backup_policy: ENABLED
+      lifecycle_policy: AFTER_14_DAYS
+      performance_mode: maxIO
+      throughput_mode: provisioned
+      provisioned_throughput: 1
